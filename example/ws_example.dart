@@ -6,7 +6,7 @@ import 'package:ws/ws.dart';
 
 void main([List<String>? args]) {
   // The server URL
-  const url = 'wss://echo.plugfox.dev:443/connect';
+  const url = 'wss://socketsbay.com/wss/v2/1/demo/';
 
   // Setup a WebSocket client with auto reconnect
   final client = WebSocketClient(reconnectTimeout: const Duration(seconds: 5))

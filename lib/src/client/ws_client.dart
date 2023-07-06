@@ -18,6 +18,15 @@ import 'package:ws/ws.dart';
 /// {@endtemplate}
 /// {@category Client}
 final class WebSocketClient implements IWebSocketClient {
+  final IWebSocketClient _client;
+
+  final WebSocketEventQueue _eventQueue = WebSocketEventQueue();
+
+  bool _isClosed = false;
+
+  @override
+  final Duration reconnectTimeout;
+
   /// {@macro ws_client}
   WebSocketClient(
       {Duration reconnectTimeout = const Duration(seconds: 5),
@@ -26,6 +35,13 @@ final class WebSocketClient implements IWebSocketClient {
         _client = $platformWebSocketClient(reconnectTimeout.abs(), protocols) {
     WebSocketMetricsManager.instance.startObserving(this);
   }
+
+  /// {@macro ws_client}
+  factory WebSocketClient.connect(String url,
+          {Duration reconnectTimeout = const Duration(seconds: 5),
+          Iterable<String>? protocols}) =>
+      WebSocketClient(reconnectTimeout: reconnectTimeout, protocols: protocols)
+        ..connect(url).ignore();
 
   /// Creates a [WebSocketClient] from an existing [IWebSocketClient].
   /// This is useful for testing or if you want to use a custom implementation
@@ -38,60 +54,27 @@ final class WebSocketClient implements IWebSocketClient {
     WebSocketMetricsManager.instance.startObserving(this);
   }
 
-  /// {@macro ws_client}
-  factory WebSocketClient.connect(String url,
-          {Duration reconnectTimeout = const Duration(seconds: 5),
-          Iterable<String>? protocols}) =>
-      WebSocketClient(reconnectTimeout: reconnectTimeout, protocols: protocols)
-        ..connect(url).ignore();
-
-  final IWebSocketClient _client;
-  final WebSocketEventQueue _eventQueue = WebSocketEventQueue();
-
   @override
   bool get isClosed => _isClosed;
-  bool _isClosed = false;
-
-  @override
-  final Duration reconnectTimeout;
 
   /// Get the metrics for this client.
   WebSocketMetrics get metrics =>
       WebSocketMetricsManager.instance.buildMetric(this);
 
   @override
-  WebSocketMessagesStream get stream => _client.stream;
+  WebSocketClientState get state => _client.state;
 
   @override
   Stream<WebSocketClientState> get stateChanges => _client.stateChanges;
 
   @override
-  WebSocketClientState get state => _client.state;
+  WebSocketMessagesStream get stream => _client.stream;
 
   @override
   Future<void> add(Object data) async {
     if (_isClosed) return Future<void>.error(const WSClientClosed());
     await _eventQueue.push('add', () => _client.add(data));
     WebSocketMetricsManager.instance.sent(this, data);
-  }
-
-  @override
-  Future<void> connect(String url) {
-    if (_isClosed) return Future<void>.error(const WSClientClosed());
-    return _eventQueue.push('connect', () {
-      WebSocketConnectionManager.instance.startMonitoringConnection(this, url);
-      return _client.connect(url);
-    });
-  }
-
-  @override
-  Future<void> disconnect(
-      [int? code = 1000, String? reason = 'NORMAL_CLOSURE']) {
-    if (_isClosed) return Future<void>.error(const WSClientClosed());
-    return _eventQueue.push('disconnect', () {
-      WebSocketConnectionManager.instance.stopMonitoringConnection(this);
-      return _client.disconnect(code, reason);
-    });
   }
 
   @override
@@ -114,5 +97,24 @@ final class WebSocketClient implements IWebSocketClient {
         WebSocketMetricsManager.instance.stopObserving(this);
       });
     }
+  }
+
+  @override
+  Future<void> connect(String url, {Map<String, dynamic>? headers}) {
+    if (_isClosed) return Future<void>.error(const WSClientClosed());
+    return _eventQueue.push('connect', () {
+      WebSocketConnectionManager.instance.startMonitoringConnection(this, url);
+      return _client.connect(url);
+    });
+  }
+
+  @override
+  Future<void> disconnect(
+      [int? code = 1000, String? reason = 'NORMAL_CLOSURE']) {
+    if (_isClosed) return Future<void>.error(const WSClientClosed());
+    return _eventQueue.push('disconnect', () {
+      WebSocketConnectionManager.instance.stopMonitoringConnection(this);
+      return _client.disconnect(code, reason);
+    });
   }
 }

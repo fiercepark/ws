@@ -20,9 +20,6 @@ IWebSocketClient $platformWebSocketClient(
 /// {@nodoc}
 @internal
 final class WebSocketClient$JS extends WebSocketClientBase {
-  /// {@nodoc}
-  WebSocketClient$JS({super.reconnectTimeout, super.protocols});
-
   /// Native WebSocket client.
   /// {@nodoc}
   html.WebSocket? _client;
@@ -43,6 +40,9 @@ final class WebSocketClient$JS extends WebSocketClientBase {
   /// Binding to close event from native WebSocket client.
   /// {@nodoc}
   StreamSubscription<html.CloseEvent>? _closeBindSubscription;
+
+  /// {@nodoc}
+  WebSocketClient$JS({super.reconnectTimeout, super.protocols});
 
   /// Ready state of the WebSocket client.
   /// {@nodoc}
@@ -85,7 +85,14 @@ final class WebSocketClient$JS extends WebSocketClientBase {
   }
 
   @override
-  FutureOr<void> connect(String url) async {
+  FutureOr<void> close(
+      [int? code = 1000, String? reason = 'NORMAL_CLOSURE']) async {
+    await super.close(code, reason);
+    _client = null;
+  }
+
+  @override
+  FutureOr<void> connect(String url, {Map<String, dynamic>? headers}) async {
     try {
       if (_client != null) await disconnect(1001, 'RECONNECTING');
       super.connect(url);
@@ -156,36 +163,12 @@ final class WebSocketClient$JS extends WebSocketClientBase {
     _client = null;
     super.onDisconnected(code, reason);
   }
-
-  @override
-  FutureOr<void> close(
-      [int? code = 1000, String? reason = 'NORMAL_CLOSURE']) async {
-    await super.close(code, reason);
-    _client = null;
-  }
 }
 
 /// {@nodoc}
 final class _BlobCodec {
   /// {@nodoc}
   _BlobCodec();
-
-  /// {@nodoc}
-  @internal
-  html.Blob write(Object data) {
-    switch (data) {
-      case String text:
-        return html.Blob([Uint8List.fromList(utf8.encode(text))]);
-      case TypedData td:
-        return html.Blob([td.buffer.asUint8List()]);
-      case ByteBuffer bb:
-        return html.Blob([bb.asUint8List()]);
-      case List<int> bytes:
-        return html.Blob([Uint8List.fromList(bytes)]);
-      default:
-        throw ArgumentError.value(data, 'data', 'Invalid data type.');
-    }
-  }
 
   /// {@nodoc}
   @internal
@@ -223,5 +206,22 @@ final class _BlobCodec {
       ..onError.listen(completeError)
       ..readAsArrayBuffer(blob);
     return completer.future;
+  }
+
+  /// {@nodoc}
+  @internal
+  html.Blob write(Object data) {
+    switch (data) {
+      case String text:
+        return html.Blob([Uint8List.fromList(utf8.encode(text))]);
+      case TypedData td:
+        return html.Blob([td.buffer.asUint8List()]);
+      case ByteBuffer bb:
+        return html.Blob([bb.asUint8List()]);
+      case List<int> bytes:
+        return html.Blob([Uint8List.fromList(bytes)]);
+      default:
+        throw ArgumentError.value(data, 'data', 'Invalid data type.');
+    }
   }
 }

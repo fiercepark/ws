@@ -9,12 +9,6 @@ abstract interface class IWebSocketClient implements Sink<Object> {
   /// Timeout between reconnection attempts.
   abstract final Duration reconnectTimeout;
 
-  /// Whether the WebSocket connection is closed.
-  bool get isClosed;
-
-  /// The current state of the WebSocket connection.
-  WebSocketClientState get state;
-
   /// Stream of state changes for the WebSocket connection.
   abstract final Stream<WebSocketClientState> stateChanges;
 
@@ -22,14 +16,28 @@ abstract interface class IWebSocketClient implements Sink<Object> {
   /// The stream provides messages as they are received from the network.
   abstract final WebSocketMessagesStream stream;
 
+  /// Whether the WebSocket connection is closed.
+  bool get isClosed;
+
+  /// The current state of the WebSocket connection.
+  WebSocketClientState get state;
+
   /// Sends data on the WebSocket connection.
   /// The data in data must be either a String, or a List<int> holding bytes.
   @override
   FutureOr<void> add(/* String || List<int> */ Object data);
 
+  /// Permanently stops the WebSocket connection and frees all resources.
+  /// After calling this method the WebSocket client is no longer usable.
+  ///
+  /// Use [disconnect] to temporarily close the connection.
+  /// And reconnect with [connect] method later.
+  @override
+  FutureOr<void> close([int? code = 1000, String? reason = 'NORMAL_CLOSURE']);
+
   /// Connects to the WebSocket server.
   /// [url] - the URL that was used to establish the connection.
-  FutureOr<void> connect(String url);
+  FutureOr<void> connect(String url, {Map<String, dynamic>? headers});
 
   /// Closes the WebSocket connection.
   /// Set the optional [code] and [reason] arguments
@@ -40,12 +48,4 @@ abstract interface class IWebSocketClient implements Sink<Object> {
   /// https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent/code
   FutureOr<void> disconnect(
       [int? code = 1000, String? reason = 'NORMAL_CLOSURE']);
-
-  /// Permanently stops the WebSocket connection and frees all resources.
-  /// After calling this method the WebSocket client is no longer usable.
-  ///
-  /// Use [disconnect] to temporarily close the connection.
-  /// And reconnect with [connect] method later.
-  @override
-  FutureOr<void> close([int? code = 1000, String? reason = 'NORMAL_CLOSURE']);
 }

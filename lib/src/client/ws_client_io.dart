@@ -20,9 +20,6 @@ IWebSocketClient $platformWebSocketClient(
 /// {@nodoc}
 @internal
 final class WebSocketClient$IO extends WebSocketClientBase {
-  /// {@nodoc}
-  WebSocketClient$IO({super.reconnectTimeout, super.protocols});
-
   /// Native WebSocket client.
   /// {@nodoc}
   io.WebSocket? _client;
@@ -31,6 +28,9 @@ final class WebSocketClient$IO extends WebSocketClientBase {
   /// The subscription of [_communication] to [_controller].
   /// {@nodoc}
   StreamSubscription<Object?>? _dataBindSubscription;
+
+  /// {@nodoc}
+  WebSocketClient$IO({super.reconnectTimeout, super.protocols});
 
   @override
   WebSocketReadyState get readyState {
@@ -69,11 +69,19 @@ final class WebSocketClient$IO extends WebSocketClientBase {
   }
 
   @override
-  FutureOr<void> connect(String url) async {
+  FutureOr<void> close(
+      [int? code = 1000, String? reason = 'NORMAL_CLOSURE']) async {
+    await super.close(code, reason);
+    _client = null;
+  }
+
+  @override
+  FutureOr<void> connect(String url, {Map<String, dynamic>? headers}) async {
     try {
       if (_client != null) await disconnect(1001, 'RECONNECTING');
       super.connect(url);
-      _client = await io.WebSocket.connect(url, protocols: protocols);
+      _client = await io.WebSocket.connect(url,
+          protocols: protocols, headers: headers);
       _dataBindSubscription = _client
           ?.asyncMap<Object?>((data) => switch (data) {
                 String text => text,
@@ -127,12 +135,5 @@ final class WebSocketClient$IO extends WebSocketClientBase {
     Future<void>.sync(() => _client?.close(code, reason)).ignore();
     _client = null;
     super.onDisconnected(code, reason);
-  }
-
-  @override
-  FutureOr<void> close(
-      [int? code = 1000, String? reason = 'NORMAL_CLOSURE']) async {
-    await super.close(code, reason);
-    _client = null;
   }
 }

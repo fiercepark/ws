@@ -9,25 +9,11 @@ import 'package:ws/src/util/logger.dart';
 /// {@nodoc}
 @internal
 abstract base class WebSocketClientBase implements IWebSocketClient {
-  /// {@nodoc}
-  WebSocketClientBase(
-      {this.reconnectTimeout = const Duration(seconds: 5),
-      Iterable<String>? protocols})
-      : _dataController = StreamController<Object>.broadcast(),
-        _stateController = StreamController<WebSocketClientState>.broadcast(),
-        _state = WebSocketClientState.initial(),
-        protocols = protocols != null
-            ? UnmodifiableListView(protocols.toList(growable: false))
-            : null;
-
-  @override
-  bool get isClosed => _isClosed;
   bool _isClosed = false;
 
   /// {@nodoc}
   @protected
   final List<String>? protocols;
-
   @override
   final Duration reconnectTimeout;
 
@@ -44,8 +30,6 @@ abstract base class WebSocketClientBase implements IWebSocketClient {
   /// {@nodoc}
   abstract final WebSocketReadyState readyState;
 
-  @override
-  WebSocketClientState get state => _state;
   WebSocketClientState _state;
 
   /// Output stream of state changes.
@@ -57,11 +41,22 @@ abstract base class WebSocketClientBase implements IWebSocketClient {
   late final Stream<WebSocketClientState> stateChanges =
       _stateController.stream;
 
+  /// {@nodoc}
+  WebSocketClientBase(
+      {this.reconnectTimeout = const Duration(seconds: 5),
+      Iterable<String>? protocols})
+      : _dataController = StreamController<Object>.broadcast(),
+        _stateController = StreamController<WebSocketClientState>.broadcast(),
+        _state = WebSocketClientState.initial(),
+        protocols = protocols != null
+            ? UnmodifiableListView(protocols.toList(growable: false))
+            : null;
+
   @override
-  @mustCallSuper
-  FutureOr<void> connect(String url) async {
-    setState((_) => WebSocketClientState.connecting(url: url));
-  }
+  bool get isClosed => _isClosed;
+
+  @override
+  WebSocketClientState get state => _state;
 
   @override
   @mustCallSuper
@@ -71,17 +66,6 @@ abstract base class WebSocketClientBase implements IWebSocketClient {
       text = text.length > 100 ? '${text.substring(0, 97)}...' : text;
       fine('> $text');
     }
-  }
-
-  @override
-  @mustCallSuper
-  FutureOr<void> disconnect(
-      [int? code = 1000, String? reason = 'NORMAL_CLOSURE']) async {
-    if (state.readyState.isClosed) return;
-    setState((_) => WebSocketClientState.disconnecting(
-          closeCode: code,
-          closeReason: reason,
-        ));
   }
 
   @override
@@ -98,14 +82,21 @@ abstract base class WebSocketClientBase implements IWebSocketClient {
     _stateController.close().ignore();
   }
 
-  /// {@nodoc}
-  @protected
-  void setState(
-      WebSocketClientState Function(WebSocketClientState state) change) {
-    final newState = change(_state);
-    if (newState == _state || _stateController.isClosed) return;
-    _stateController.add(_state = newState);
-    info('WebSocketClient state changed to $newState');
+  @override
+  @mustCallSuper
+  FutureOr<void> connect(String url, {Map<String, dynamic>? headers}) async {
+    setState((_) => WebSocketClientState.connecting(url: url));
+  }
+
+  @override
+  @mustCallSuper
+  FutureOr<void> disconnect(
+      [int? code = 1000, String? reason = 'NORMAL_CLOSURE']) async {
+    if (state.readyState.isClosed) return;
+    setState((_) => WebSocketClientState.disconnecting(
+          closeCode: code,
+          closeReason: reason,
+        ));
   }
 
   /// {@nodoc}
@@ -116,13 +107,17 @@ abstract base class WebSocketClientBase implements IWebSocketClient {
 
   /// {@nodoc}
   @protected
-  void onSent(Object data) {
-    if ($debugWS) {
-      var text = data.toString();
-      text = text.length > 100 ? '${text.substring(0, 97)}...' : text;
-      fine('Sent: $text');
-    }
+  void onDisconnected(int? code, String? reason) {
+    setState((_) => WebSocketClientState.closed(
+          closeCode: code,
+          closeReason: reason,
+        ));
   }
+
+  /// Error callback.
+  /// {@nodoc}
+  @protected
+  void onError(Object error, StackTrace stackTrace) {}
 
   /// On data received callback.
   /// {@nodoc}
@@ -139,15 +134,21 @@ abstract base class WebSocketClientBase implements IWebSocketClient {
 
   /// {@nodoc}
   @protected
-  void onDisconnected(int? code, String? reason) {
-    setState((_) => WebSocketClientState.closed(
-          closeCode: code,
-          closeReason: reason,
-        ));
+  void onSent(Object data) {
+    if ($debugWS) {
+      var text = data.toString();
+      text = text.length > 100 ? '${text.substring(0, 97)}...' : text;
+      fine('Sent: $text');
+    }
   }
 
-  /// Error callback.
   /// {@nodoc}
   @protected
-  void onError(Object error, StackTrace stackTrace) {}
+  void setState(
+      WebSocketClientState Function(WebSocketClientState state) change) {
+    final newState = change(_state);
+    if (newState == _state || _stateController.isClosed) return;
+    _stateController.add(_state = newState);
+    info('WebSocketClient state changed to $newState');
+  }
 }

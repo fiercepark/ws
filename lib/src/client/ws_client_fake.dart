@@ -14,17 +14,17 @@ IWebSocketClient $platformWebSocketClient(
 
 /// {@nodoc}
 final class WebSocketClient$Fake implements IWebSocketClient {
-  /// {@nodoc}
-  WebSocketClient$Fake(
-      {this.reconnectTimeout = const Duration(seconds: 5),
-      Iterable<String>? protocols})
-      : protocols = protocols?.toList();
-
   @override
   final Duration reconnectTimeout;
 
   /// {@nodoc}
   final List<String>? protocols;
+
+  /// {@nodoc}
+  WebSocketClient$Fake(
+      {this.reconnectTimeout = const Duration(seconds: 5),
+      Iterable<String>? protocols})
+      : protocols = protocols?.toList();
 
   @override
   bool get isClosed => true;
@@ -43,12 +43,12 @@ final class WebSocketClient$Fake implements IWebSocketClient {
   FutureOr<void> add(Object data) {}
 
   @override
-  FutureOr<void> connect(String url) {}
+  FutureOr<void> close([int? code = 1000, String? reason = 'NORMAL_CLOSURE']) {}
+
+  @override
+  FutureOr<void> connect(String url, {Map<String, dynamic>? headers}) {}
 
   @override
   FutureOr<void> disconnect(
       [int? code = 1000, String? reason = 'NORMAL_CLOSURE']) {}
-
-  @override
-  FutureOr<void> close([int? code = 1000, String? reason = 'NORMAL_CLOSURE']) {}
 }
