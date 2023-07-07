@@ -104,7 +104,7 @@ final class WebSocketClient implements IWebSocketClient {
     if (_isClosed) return Future<void>.error(const WSClientClosed());
     return _eventQueue.push('connect', () {
       WebSocketConnectionManager.instance.startMonitoringConnection(this, url);
-      return _client.connect(url);
+      return _client.connect(url, headers: headers);
     });
   }
 
