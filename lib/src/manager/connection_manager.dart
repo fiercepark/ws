@@ -104,11 +104,8 @@ final class WebSocketConnectionManager {
               _timer = Timer(
                 const Duration(seconds: 8),
                 () {
-                  if (client.isClosed) {
-                    _stopTimer();
-                  } else if (client.state.readyState.isClosed) {
-                    Future<void>.sync(() => client.connect(lastUrl)).ignore();
-                  }
+                  client.close(10001, 'TIMEOUT');
+                  Future<void>.sync(() => client.connect(lastUrl)).ignore();
                 },
               );
             }
@@ -117,11 +114,8 @@ final class WebSocketConnectionManager {
               _timer = Timer(
                 const Duration(seconds: 8),
                 () {
-                  if (client.isClosed) {
-                    _stopTimer();
-                  } else if (client.state.readyState.isClosed) {
-                    Future<void>.sync(() => client.connect(lastUrl)).ignore();
-                  }
+                  client.close(10001, 'TIMEOUT');
+                  Future<void>.sync(() => client.connect(lastUrl)).ignore();
                 },
               );
             }
