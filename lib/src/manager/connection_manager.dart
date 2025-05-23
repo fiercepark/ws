@@ -105,8 +105,8 @@ final class WebSocketConnectionManager {
               _timer = Timer(
                 const Duration(seconds: 5),
                 () {
-                  Future<void>.sync(() => client.disconnect(10001, 'TIMEOUT'))
-                      .ignore();
+                  Future<void>.sync(
+                      () => client.disconnect(1001, 'RECONNECTING')).ignore();
                 },
               );
             }
