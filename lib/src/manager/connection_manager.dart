@@ -8,8 +8,8 @@ import 'package:ws/src/util/logger.dart';
 
 @internal
 final class WebSocketConnectionManager {
-  WebSocketConnectionManager(IWebSocketClient client)
-      : _client = WeakReference<IWebSocketClient>(client);
+  /// Randomizer for full jitter technique.
+  static final math.Random _rnd = math.Random();
 
   final WeakReference<IWebSocketClient> _client;
 
@@ -20,6 +20,9 @@ final class WebSocketConnectionManager {
   int? _attempt;
 
   DateTime? _nextReconnectionAttempt;
+
+  WebSocketConnectionManager(IWebSocketClient client)
+      : _client = WeakReference<IWebSocketClient>(client);
 
   /// Recive the current status of reconnection for the client.
   ({
@@ -97,7 +100,23 @@ final class WebSocketConnectionManager {
             );
             _attempt = attempt + 1;
           case WebSocketClientState$Connecting _:
+            {
+              _timer = Timer(
+                const Duration(seconds: 8),
+                () {
+                  client.disconnect();
+                },
+              );
+            }
           case WebSocketClientState$Disconnecting _:
+            {
+              _timer = Timer(
+                const Duration(seconds: 8),
+                () {
+                  client.close();
+                },
+              );
+            }
         }
       };
 
@@ -121,7 +140,4 @@ final class WebSocketConnectionManager {
     final interval = _rnd.nextInt(val.toInt());
     return Duration(milliseconds: math.min(maxDelay, minDelay + interval));
   }
-
-  /// Randomizer for full jitter technique.
-  static final math.Random _rnd = math.Random();
 }
