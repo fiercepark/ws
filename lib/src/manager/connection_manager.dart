@@ -73,7 +73,6 @@ final class WebSocketConnectionManager {
             _nextReconnectionAttempt = null; // reset expected time
           case WebSocketClientState$Closed _:
             _stopTimer();
-            if (client.isClosed) return;
             final attempt = _attempt ?? 0;
             final delay = backoffDelay(attempt, minMs, maxMs);
             if (delay <= Duration.zero) {
